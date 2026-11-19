@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "443217079683",
+    "project_id": "saxenacomputers-450e4",
+    "storage_bucket": "saxenacomputers-450e4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:443217079683:android:1b8b57dea8d36dcba9dab6",
+        "android_client_info": {
+          "package_name": "Com.saxenacomputers.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCivVAIdrOLTfM52BSj0ol7utuK5wL9TIE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
