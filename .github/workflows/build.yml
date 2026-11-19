@@ -25,22 +25,31 @@ jobs:
           flutter create --org com.saxenacomputers --project-name saxena_computer /tmp/app
           cp pubspec.yaml /tmp/app/pubspec.yaml
           cp -r lib/* /tmp/app/lib/
-          cp google-services.json /tmp/app/android/app/google-services.json
+          cp google-services.json /tmp/app/google-services.json
           cd /tmp/app
           python3 -c '
-          with open("android/settings.gradle.kts") as f: s = f.read()
-          s = s.replace("plugins {", "plugins {\n    id(\"com.google.gms.google-services\") version \"4.4.2\" apply false")
-          with open("android/settings.gradle.kts", "w") as f: f.write(s)
+          import json
+          with open("google-services.json") as f:
+              data = json.load(f)
+          proj = data["project_info"]
+          client = data["client"][0]
+          dart_code = f"""import "package:firebase_core/firebase_core.dart";
+          class DefaultFirebaseOptions {{
+            static const FirebaseOptions android = FirebaseOptions(
+              apiKey: "{client["api_key"][0]["current_key"]}",
+              appId: "{client["client_info"]["mobilesdk_app_id"]}",
+              messagingSenderId: "{proj["project_number"]}",
+              projectId: "{proj["project_id"]}",
+              storageBucket: "{proj.get("storage_bucket", "")}",
+            );
+          }}
+          """
+          with open("lib/firebase_options.dart", "w") as f:
+              f.write(dart_code)
 
           with open("android/app/build.gradle.kts") as f: b = f.read()
-          b = b.replace("plugins {", "plugins {\n    id(\"com.google.gms.google-services\")")
           b = b.replace("minSdk = flutter.minSdkVersion", "minSdk = 21")
           with open("android/app/build.gradle.kts", "w") as f: f.write(b)
-
-          with open("android/app/src/main/AndroidManifest.xml") as f: m = f.read()
-          m = m.replace("<manifest", "<manifest xmlns:tools=\"http://schemas.android.com/tools\"") if "xmlns:tools" not in m else m
-          m = m.replace("<application", "<uses-permission android:name=\"android.permission.INTERNET\"/>\n    <application")
-          with open("android/app/src/main/AndroidManifest.xml", "w") as f: f.write(m)
           '
           flutter pub get
           flutter build apk --release
