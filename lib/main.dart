@@ -3,14 +3,36 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
   runApp(const SaxenaComputerApp());
 }
 
-class SaxenaComputerApp extends StatelessWidget {
+class SaxenaComputerApp extends StatefulWidget {
   const SaxenaComputerApp({super.key});
+
+  @override
+  State<SaxenaComputerApp> createState() => _SaxenaComputerAppState();
+}
+
+class _SaxenaComputerAppState extends State<SaxenaComputerApp> {
+  bool _initialized = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _initFirebase();
+  }
+
+  Future<void> _initFirebase() async {
+    try {
+      await Firebase.initializeApp();
+      if (mounted) setState(() => _initialized = true);
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +44,32 @@ class SaxenaComputerApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF990000)),
         useMaterial3: true,
       ),
-      home: const MainNavigationScreen(),
+      home: _error != null
+          ? Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text('Firebase Error: $_error', style: const TextStyle(color: Colors.red)),
+                ),
+              ),
+            )
+          : !_initialized
+              ? const Scaffold(
+                  backgroundColor: Color(0xFF990000),
+                  body: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.computer, size: 64, color: Colors.white),
+                        SizedBox(height: 16),
+                        Text('SAXENA COMPUTER', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 20),
+                        CircularProgressIndicator(color: Colors.white),
+                      ],
+                    ),
+                  ),
+                )
+              : const MainNavigationScreen(),
     );
   }
 }
@@ -159,6 +206,9 @@ class UpdatesListTab extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const Center(child: Text('Abhi koi update uplabdh nahi hai.'));
