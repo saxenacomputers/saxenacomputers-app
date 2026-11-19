@@ -34,9 +34,6 @@ class _SaxenaComputerAppState extends State<SaxenaComputerApp> {
       if (mounted) setState(() => _error = e.toString());
     }
   }
-      if (mounted) setState(() => _error = e.toString());
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
