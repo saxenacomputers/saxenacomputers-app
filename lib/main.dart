@@ -315,7 +315,7 @@ class UpdateDetailScreen extends StatelessWidget {
 class CscServicesScreen extends StatelessWidget {
   const CscServicesScreen({super.key});
 
-  final List> services = const [
+  final List services = const [
     {'name': 'Aay Praman Patra (Income Certificate)', 'docs': 'Aadhaar Card, Photo, Ration Card / Family ID, Self Declaration'},
     {'name': 'Jaati Praman Patra (Caste Certificate)', 'docs': 'Aadhaar Card, Photo, Father/Family Caste Proof, Ration Card'},
     {'name': 'Niwas Praman Patra (Domicile)', 'docs': 'Aadhaar Card, Photo, Bijli Bill / Ration Card / Voter ID'},
@@ -340,9 +340,9 @@ class CscServicesScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item['name']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF990000))),
+                Text(item['name'].toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF990000))),
                 const SizedBox(height: 6),
-                Text('Zaroori Documents: ${item['docs']!}', style: const TextStyle(fontSize: 13, color: Colors.black87)),
+                Text('Zaroori Documents: ${item['docs']}', style: const TextStyle(fontSize: 13, color: Colors.black87)),
               ],
             ),
           ),
