@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'firebase_options.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,9 +28,12 @@ class _SaxenaComputerAppState extends State<SaxenaComputerApp> {
 
   Future<void> _initFirebase() async {
     try {
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.android);
       if (mounted) setState(() => _initialized = true);
     } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    }
+  }
       if (mounted) setState(() => _error = e.toString());
     }
   }
