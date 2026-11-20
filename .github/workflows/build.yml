@@ -50,6 +50,21 @@ jobs:
           with open("android/app/build.gradle.kts") as f: b = f.read()
           b = b.replace("minSdk = flutter.minSdkVersion", "minSdk = 21")
           with open("android/app/build.gradle.kts", "w") as f: f.write(b)
+
+          with open("android/app/src/main/AndroidManifest.xml") as f: m = f.read()
+          queries = """<queries>
+              <intent>
+                  <action android:name="android.intent.action.VIEW" />
+                  <data android:scheme="https" />
+              </intent>
+              <intent>
+                  <action android:name="android.intent.action.VIEW" />
+                  <data android:scheme="http" />
+              </intent>
+          </queries>
+          </manifest>"""
+          m = m.replace("</manifest>", queries)
+          with open("android/app/src/main/AndroidManifest.xml", "w") as f: f.write(m)
           '
           flutter pub get
           flutter build apk --release
