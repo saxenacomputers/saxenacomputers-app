@@ -84,6 +84,8 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
+  int _secretTapCount = 0;
+  DateTime? _lastTapTime;
 
   final List<Widget> _pages = [
     const SarkariUpdatesScreen(),
@@ -91,26 +93,37 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const ShopContactScreen(),
   ];
 
+  void _handleTitleTap() {
+    final now = DateTime.now();
+    if (_lastTapTime == null || now.difference(_lastTapTime!) > const Duration(seconds: 2)) {
+      _secretTapCount = 1;
+    } else {
+      _secretTapCount++;
+    }
+    _lastTapTime = now;
+
+    if (_secretTapCount >= 5) {
+      _secretTapCount = 0;
+      _showAdminPinDialog(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF990000),
         foregroundColor: Colors.white,
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('SAXENA COMPUTER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            Text('CSC & Digital Seva Kendra • Ganjdundwara', style: TextStyle(fontSize: 11, color: Colors.white70)),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.admin_panel_settings),
-            tooltip: 'Admin Panel',
-            onPressed: () => _showAdminPinDialog(context),
+        title: GestureDetector(
+          onTap: _handleTitleTap,
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('SAXENA COMPUTER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              Text('CSC & Digital Seva Kendra • Ganjdundwara', style: TextStyle(fontSize: 11, color: Colors.white70)),
+            ],
           ),
-        ],
+        ),
       ),
       body: _pages[_selectedIndex],
       bottomNavigationBar: NavigationBar(
@@ -133,19 +146,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         title: const Text('Admin Login'),
         content: TextField(
           controller: pinController,
-          keyboardType: TextInputType.number,
+          keyboardType: TextInputType.visiblePassword,
           obscureText: true,
-          decoration: const InputDecoration(labelText: 'Admin PIN dalein (Default: 1234)'),
+          decoration: const InputDecoration(labelText: 'Admin Password dalein'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
-              if (pinController.text == '1234') {
+              if (pinController.text.trim() == 'Saxenaditya@1313') {
                 Navigator.pop(ctx);
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminPostScreen()));
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Galat PIN!')));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Galat Password!')));
               }
             },
             child: const Text('Login'),
@@ -271,11 +284,19 @@ class UpdateDetailScreen extends StatelessWidget {
   final Map<String, dynamic> data;
   const UpdateDetailScreen({super.key, required this.data});
 
-  Future<void> _openUrl(String url) async {
-    if (url.isEmpty) return;
-    final uri = Uri.parse(url.startsWith('http') ? url : 'https://$url');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+  Future<void> _openUrl(BuildContext context, String url) async {
+    final cleanUrl = url.trim();
+    if (cleanUrl.isEmpty) return;
+    final uri = Uri.parse(cleanUrl.startsWith('http') ? cleanUrl : 'https://$cleanUrl');
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Link open nahi ho payi: $e')));
+      }
     }
   }
 
@@ -301,25 +322,25 @@ class UpdateDetailScreen extends StatelessWidget {
             _infoSection('Required Documents (Zaroori Kagaz)', data['docs']),
             _infoSection('Selection / Form Process', data['process']),
             const SizedBox(height: 16),
-            if ((data['officialUrl'] ?? '').toString().isNotEmpty)
+            if ((data['officialUrl'] ?? '').toString().trim().isNotEmpty)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, foregroundColor: Colors.white, padding: const EdgeInsets.all(12)),
                   icon: const Icon(Icons.open_in_browser),
                   label: const Text('Apply Online / Official Link'),
-                  onPressed: () => _openUrl(data['officialUrl']),
+                  onPressed: () => _openUrl(context, data['officialUrl'].toString()),
                 ),
               ),
             const SizedBox(height: 10),
-            if ((data['pdfUrl'] ?? '').toString().isNotEmpty)
+            if ((data['pdfUrl'] ?? '').toString().trim().isNotEmpty)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade800, foregroundColor: Colors.white, padding: const EdgeInsets.all(12)),
                   icon: const Icon(Icons.picture_as_pdf),
                   label: const Text('Download Notification / PDF'),
-                  onPressed: () => _openUrl(data['pdfUrl']),
+                  onPressed: () => _openUrl(context, data['pdfUrl'].toString()),
                 ),
               ),
             const SizedBox(height: 12),
@@ -328,7 +349,7 @@ class UpdateDetailScreen extends StatelessWidget {
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.storefront, color: Color(0xFF990000)),
                 label: const Text('Form Bharwane ke liye Saxena Computer Aayein'),
-                onPressed: () => _openUrl('https://saxenacomputers.shop'),
+                onPressed: () => _openUrl(context, 'https://saxenacomputers.shop'),
               ),
             ),
           ],
@@ -367,15 +388,87 @@ class CscServicesScreen extends StatelessWidget {
   const CscServicesScreen({super.key});
 
   final List services = const [
-    {'name': 'Aay Praman Patra (Income Certificate)', 'docs': 'Aadhaar Card, Photo, Ration Card / Family ID, Self Declaration'},
-    {'name': 'Jaati Praman Patra (Caste Certificate)', 'docs': 'Aadhaar Card, Photo, Father/Family Caste Proof, Ration Card'},
-    {'name': 'Niwas Praman Patra (Domicile)', 'docs': 'Aadhaar Card, Photo, Bijli Bill / Ration Card / Voter ID'},
-    {'name': 'UP Scholarship Online Form', 'docs': 'Previous Marksheet, Income & Caste Certificate, Bank Passbook, Aadhaar'},
-    {'name': 'New PAN Card & Correction', 'docs': 'Aadhaar Card (Mobile Linked), 2 Passport Size Photos'},
-    {'name': 'Ayushman Card & e-Shram Card', 'docs': 'Aadhaar Card, Ration Card, Active Mobile Number'},
-    {'name': 'PF Withdrawal, Train Ticket & Money Transfer', 'docs': 'UAN Number / Aadhaar / Bank Details'},
-    {'name': 'Color Printout, Lamination & Urgent Photo', 'docs': 'Saxena Computer par turant suvidha uplabdh'},
+    {
+      'name': 'Aay Praman Patra (Income Certificate)',
+      'docs': '• Aadhaar Card (Mobile Linked)\n• Latest Passport Size Photo\n• Ration Card / Family ID\n• Self Declaration Form (Swaghoshna Patra)',
+      'time': '7 se 10 Working Days (e-District UP)'
+    },
+    {
+      'name': 'Jaati Praman Patra (Caste Certificate)',
+      'docs': '• Aadhaar Card\n• Passport Size Photo\n• Father / Family Caste Proof (Purana Praman Patra / Khatauni)\n• Ration Card',
+      'time': '7 se 10 Working Days (e-District UP)'
+    },
+    {
+      'name': 'Niwas Praman Patra (Domicile)',
+      'docs': '• Aadhaar Card\n• Passport Size Photo\n• Bijli Bill / Ration Card / Voter ID\n• Self Declaration Form',
+      'time': '7 se 10 Working Days (e-District UP)'
+    },
+    {
+      'name': 'UP Scholarship Online Form',
+      'docs': '• 10th, 12th & Previous Year Marksheet\n• Latest Income & Caste Certificate\n• Bank Passbook (NPCI / Aadhaar Seeded)\n• Fee Receipt & Enrollment Number',
+      'time': 'Turant Online Submission + Printout'
+    },
+    {
+      'name': 'New PAN Card & Correction',
+      'docs': '• Aadhaar Card (Mobile Number Linked for e-KYC)\n• 2 Passport Size Photos & Signature (Physical Card ke liye)',
+      'time': 'e-PAN 2-3 Din mein | Physical Card 10-15 Din'
+    },
+    {
+      'name': 'Ayushman Card & e-Shram Card',
+      'docs': '• Aadhaar Card\n• Ration Card / Antyodaya Card\n• Active Mobile Number',
+      'time': 'Turant KYC & PVC Card Printout'
+    },
+    {
+      'name': 'PF Withdrawal, Train Ticket & Money Transfer',
+      'docs': '• UAN Number & Password (PF ke liye)\n• Valid ID Proof (IRCTC Ticket ke liye)\n• Bank Account / IFSC Details',
+      'time': 'Turant Suvidha Uplabdh'
+    },
+    {
+      'name': 'Color Printout, Lamination & Urgent Photo',
+      'docs': '• WhatsApp / Email / Pen Drive se document bhej sakte hain\n• Urgent Passport Size Photo 5 minute mein taiyar',
+      'time': '5 Minute mein Ready'
+    },
   ];
+
+  void _showServiceDetails(BuildContext context, dynamic item) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(item['name'].toString(), style: const TextStyle(color: Color(0xFF990000), fontWeight: FontWeight.bold, fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Zaroori Documents:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 6),
+            Text(item['docs'].toString(), style: const TextStyle(fontSize: 14, height: 1.4)),
+            const SizedBox(height: 12),
+            Text('Processing Time: ${item['time']}', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.green)),
+            const SizedBox(height: 12),
+            const Text('Location: Saxena Computer (In front of Ganjdundwara PG College, 8:00 AM - 8:00 PM)', style: TextStyle(fontSize: 12, color: Colors.black54)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Band Karein')),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF990000), foregroundColor: Colors.white),
+            icon: const Icon(Icons.language, size: 18),
+            label: const Text('Website Dekhein'),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final uri = Uri.parse('https://saxenacomputers.shop');
+              try {
+                final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                if (!launched) {
+                  await launchUrl(uri, mode: LaunchMode.platformDefault);
+                }
+              } catch (_) {}
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -385,17 +478,21 @@ class CscServicesScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final item = services[index];
         return Card(
+          elevation: 2,
           margin: const EdgeInsets.only(bottom: 10),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item['name'].toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF990000))),
-                const SizedBox(height: 6),
-                Text('Zaroori Documents: ${item['docs']}', style: const TextStyle(fontSize: 13, color: Colors.black87)),
-              ],
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            leading: const CircleAvatar(
+              backgroundColor: Color(0xFF990000),
+              child: Icon(Icons.verified_user, color: Colors.white, size: 20),
             ),
+            title: Text(item['name'].toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF990000))),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text('Tap karein zaroori documents aur details dekhne ke liye', style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+            ),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFF990000)),
+            onTap: () => _showServiceDetails(context, item),
           ),
         );
       },
@@ -406,10 +503,17 @@ class CscServicesScreen extends StatelessWidget {
 class ShopContactScreen extends StatelessWidget {
   const ShopContactScreen({super.key});
 
-  Future<void> _launchWeb() async {
+  Future<void> _launchWeb(BuildContext context) async {
     final uri = Uri.parse('https://saxenacomputers.shop');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Website open nahi ho payi: $e')));
+      }
     }
   }
 
@@ -445,7 +549,7 @@ class ShopContactScreen extends StatelessWidget {
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF990000), foregroundColor: Colors.white, padding: const EdgeInsets.all(14)),
               icon: const Icon(Icons.public),
               label: const Text('Visit Website (saxenacomputers.shop)'),
-              onPressed: _launchWeb,
+              onPressed: () => _launchWeb(context),
             ),
           ),
         ],
